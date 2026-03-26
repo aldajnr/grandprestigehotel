@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}Staff Accounts | Grand Prestige{% endblock %}
+{% block content %}
+<div class="layout">
+  <aside class="card sidebar">
+    <div class="side-head">
+      <div class="brand-mark" style="width:32px;height:32px;font-size:14px;">G</div>
+      <div><div class="side-label">Menu</div><div class="side-sub">Admin</div></div>
+    </div>
+    <div class="nav-section-title">Main</div>
+    <nav class="nav-links">
+      <a href="{{ url_for('dashboard.home') }}" class="nav-link"><span class="ni">&#9634;</span> Dashboard</a>
+      <a href="{{ url_for('guests.register') }}" class="nav-link"><span class="ni">+</span> Register Guest</a>
+      <a href="{{ url_for('guests.guest_list') }}" class="nav-link"><span class="ni">&#9776;</span> Guest Records</a>
+      <a href="{{ url_for('guests.search') }}" class="nav-link"><span class="ni">&#128269;</span> Search Guest</a>
+    </nav>
+    <div class="nav-divider"></div>
+    <div class="nav-section-title">Management</div>
+    <nav class="nav-links">
+      <a href="{{ url_for('admin.users') }}" class="nav-link active"><span class="ni">&#128100;</span> Staff Accounts <span class="nb chip chip-danger">Admin</span></a>
+      <a href="{{ url_for('audit.audit_page') }}" class="nav-link"><span class="ni">&#128270;</span> Audit Trail <span class="nb chip chip-danger">Admin</span></a>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="section-head">
+      <div><h1>Staff Accounts</h1><p>Create, manage and assign roles to hotel staff. Admin only.</p></div>
+    </div>
+
+    <!-- Create new staff account -->
+    <div class="card" style="margin-bottom:18px;">
+      <h2 style="margin-bottom:14px;">Create New Staff Account</h2>
+      <form method="POST" action="{{ url_for('admin.create_staff') }}" autocomplete="off">
+        <div class="form-row">
+          <div class="form-col">
+            <label class="label">Staff Email *</label>
+            <input name="username" type="email" placeholder="name@zetech.ac.ke" required/>
+          </div>
+          <div class="form-col">
+            <label class="label">Password *</label>
+            <input name="password" type="password" placeholder="Min 6 characters" required/>
+          </div>
+          <div class="form-col">
+            <label class="label">Role *</label>
+            <select name="role" required>
+              <option value="">&#8212; Select Role &#8212;</option>
+              {% for r in roles %}
+              <option value="{{ r }}">{{ r }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-col" style="display:flex;align-items:flex-end;">
+            <button type="submit" class="btn btn-brass" style="width:100%;padding:12px;">+ Create Account</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Staff list -->
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.06);">
+        <h2 style="margin:0;">Active Staff Accounts</h2>
+      </div>
+      {% if users %}
+      <div class="table-wrap" style="border:none;border-radius:0;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Password</th>
+              <th>Created</th>
+              <th>Change Role</th>
+              <th>Reset Password</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr>
+              <td class="mono small">{{ u["id"] }}</td>
+              <td style="font-weight:500;">{{ u["username"] }}</td>
+              <td>
+                {% if u["role"] == "Admin" %}<span class="chip chip-danger">Admin</span>
+                {% elif u["role"] == "Manager" %}<span class="chip chip-warn">Manager</span>
+                {% else %}<span class="chip chip-muted">{{ u["role"] }}</span>{% endif %}
+              </td>
+              <!-- Password column: masked by default, reveal on click -->
+              <td>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span id="pw-mask-{{ u['id'] }}" class="mono small" style="color:var(--text-3);letter-spacing:.2em;">&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;</span>
+                  <span id="pw-val-{{ u['id'] }}"  class="mono small" style="display:none;color:var(--brass-lt);">{{ u["password_hash"][:18] }}&hellip;</span>
+                  <button type="button"
+                    onclick="togglePw({{ u['id'] }})"
+                    id="pw-btn-{{ u['id'] }}"
+                    class="btn btn-ghost btn-sm"
+                    style="padding:3px 8px;font-size:10px;"
+                    title="Show/hide password hash">&#128065;</button>
+                </div>
+              </td>
+              <td class="mono small">{{ u["created_at"][:10] }}</td>
+              <!-- Change role -->
+              <td>
+                {% if u["id"] != session.get("user_id") %}
+                <form method="POST" action="{{ url_for('admin.change_role', uid=u['id']) }}" style="display:flex;gap:6px;">
+                  <select name="role" style="width:140px;padding:7px 10px;font-size:12px;">
+                    {% for r in roles %}<option value="{{ r }}" {% if r == u["role"] %}selected{% endif %}>{{ r }}</option>{% endfor %}
+                  </select>
+                  <button type="submit" class="btn btn-ghost btn-sm">Set</button>
+                </form>
+                {% else %}<span class="small" style="color:var(--text-3);">Current user</span>{% endif %}
+              </td>
+              <!-- Reset password -->
+              <td>
+                <button type="button"
+                  onclick="openResetPw({{ u['id'] }}, '{{ u['username'] }}')"
+                  class="btn btn-ghost btn-sm">&#128272; Reset</button>
+              </td>
+              <!-- Delete -->
+              <td>
+                {% if u["id"] != session.get("user_id") %}
+                <form method="POST" action="{{ url_for('admin.remove_staff', uid=u['id']) }}" onsubmit="return confirm('Remove this account?')">
+                  <button type="submit" class="btn btn-danger-ghost btn-sm">Remove</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><div class="empty-icon">&#128100;</div><p>No staff accounts yet.</p></div>
+      {% endif %}
+    </div>
+  </main>
+</div>
+
+<!-- Reset password modal -->
+<div id="reset-pw-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;">
+  <div class="card" style="width:100%;max-width:420px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">
+    <h2 style="margin-bottom:6px;">Reset Staff Password</h2>
+    <p id="reset-pw-name" style="margin-bottom:16px;font-size:13px;color:var(--text-2);"></p>
+    <form id="reset-pw-form" method="POST" autocomplete="off">
+      <label class="label">New Password *</label>
+      <input name="new_password" type="password" placeholder="Min 6 characters" required/>
+      <label class="label" style="margin-top:12px;">Confirm Password *</label>
+      <input name="confirm_password" type="password" placeholder="Repeat new password" required/>
+      <div class="row" style="margin-top:16px;">
+        <button type="submit" class="btn btn-brass" style="flex:1;">Save Password</button>
+        <button type="button" onclick="closeResetPw()" class="btn btn-ghost" style="flex:1;">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function togglePw(id) {
+  var mask = document.getElementById('pw-mask-' + id);
+  var val  = document.getElementById('pw-val-'  + id);
+  var btn  = document.getElementById('pw-btn-'  + id);
+  if (val.style.display === 'none') {
+    mask.style.display = 'none';
+    val.style.display  = 'inline';
+    btn.textContent    = '🙈';
+  } else {
+    mask.style.display = 'inline';
+    val.style.display  = 'none';
+    btn.textContent    = '👁';
+  }
+}
+function openResetPw(uid, email) {
+  document.getElementById('reset-pw-form').action = '/admin/users/' + uid + '/reset-password';
+  document.getElementById('reset-pw-name').textContent = 'Account: ' + email;
+  document.getElementById('reset-pw-modal').style.display = 'block';
+}
+function closeResetPw() {
+  document.getElementById('reset-pw-modal').style.display = 'none';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Register Guest | Grand Prestige{% endblock %}
+{% block content %}
+<div class="layout">
+  <aside class="card sidebar">
+    <div class="side-head">
+      <div class="brand-mark" style="width:32px;height:32px;font-size:14px;">G</div>
+      <div><div class="side-label">Menu</div><div class="side-sub">{{ session.get('role') }}</div></div>
+    </div>
+    <div class="nav-section-title">Navigation</div>
+    <nav class="nav-links">
+      <a href="{{ url_for('dashboard.home') }}" class="nav-link"><span class="ni">&#9634;</span> Dashboard</a>
+      <a href="{{ url_for('guests.register') }}" class="nav-link active"><span class="ni">&#43;</span> Register Guest <span class="nb chip chip-brass">Form</span></a>
+      <a href="{{ url_for('guests.guest_list') }}" class="nav-link"><span class="ni">&#9776;</span> Guest Records</a>
+      <a href="{{ url_for('guests.search') }}" class="nav-link"><span class="ni">&#128269;</span> Search Guest</a>
+    </nav>
+    {% if session.get('role') == 'Admin' %}
+    <div class="nav-divider"></div>
+    <div class="nav-section-title">Management</div>
+    <nav class="nav-links">
+      <a href="{{ url_for('admin.users') }}" class="nav-link"><span class="ni">&#128100;</span> Staff Accounts <span class="nb chip chip-danger">Admin</span></a>
+      <a href="{{ url_for('audit.audit_page') }}" class="nav-link"><span class="ni">&#128270;</span> Audit Trail <span class="nb chip chip-danger">Admin</span></a>
+    </nav>
+    {% endif %}
+  </aside>
+
+  <main>
+    <div class="section-head">
+      <div>
+        <h1>Register New Guest</h1>
+        <p>Fields marked <span style="color:var(--brass);">*</span> are required.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <form method="POST" autocomplete="off">
+        <div class="form-row">
+          <div class="form-col">
+            <label class="label">Full Name <span style="color:var(--brass);">*</span></label>
+            <input name="full_name" placeholder="e.g. Jane Doe" required/>
+          </div>
+          <div class="form-col">
+            <label class="label">National ID / Passport <span style="color:var(--brass);">*</span></label>
+            <input name="national_id" placeholder="e.g. 12345678" required/>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-col">
+            <label class="label">Phone Number <span style="color:var(--brass);">*</span></label>
+            <input name="phone" type="tel" placeholder="+2547XXXXXXXX" required/>
+          </div>
+          <div class="form-col">
+            <label class="label">Room Number <span style="color:var(--brass);">*</span></label>
+            <input name="room" placeholder="e.g. 204A" required/>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-col">
+            <label class="label">Check-in Date <span style="color:var(--brass);">*</span></label>
+            <input name="checkin_date" type="date" required/>
+          </div>
+          <div class="form-col">
+            <label class="label">Expected Check-out</label>
+            <input name="checkout_date" type="date"/>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-col">
+            <label class="label">Payment Method</label>
+            <select name="payment_method">
+              <option value="">&#8212; Select &#8212;</option>
+              <option value="Cash">Cash</option>
+              <option value="Card">Card</option>
+              <option value="Mobile Money">Mobile Money (M-Pesa)</option>
+              <option value="Bank Transfer">Bank Transfer</option>
+            </select>
+          </div>
+          <div class="form-col">
+            <label class="label">No. of Guests</label>
+            <input name="num_guests" type="number" min="1" max="20" placeholder="e.g. 2"/>
+          </div>
+        </div>
+
+        <label class="label">Notes / Special Requests</label>
+        <textarea name="notes" placeholder="VIP status, dietary needs, early check-in request..."></textarea>
+
+        <div class="hr"></div>
+        <div class="row">
+          <button type="submit" class="btn btn-brass" style="flex:1;padding:13px;">&#10003; Save Guest Record</button>
+          <a href="{{ url_for('guests.guest_list') }}" class="btn btn-ghost" style="flex:1;text-align:center;padding:13px;">&larr; Cancel</a>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>
+{% endblock %}

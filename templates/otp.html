@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>OTP Verification | Grand Prestige Hotel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}"/>
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card card">
+
+    <div style="text-align:center;margin-bottom:22px;">
+      <div class="auth-emblem" style="font-size:20px;">&#128274;</div>
+      <div class="auth-title">Two-Factor Verification</div>
+      <div class="auth-sub">
+        {% if mail_enabled and email_sent %}
+          Code sent to your registered email address
+        {% else %}
+          Enter the 6-digit code below
+        {% endif %}
+      </div>
+    </div>
+
+    {% if demo_otp %}
+    <div class="otp-display">
+      <div class="otp-note">Demo code (shown because email is not configured)</div>
+      <div class="otp-code">{{ demo_otp }}</div>
+      <div class="otp-exp">Expires in 5 minutes</div>
+    </div>
+    {% elif mail_enabled and email_sent %}
+    <div class="alert info" style="margin-bottom:16px;">
+      <span class="alert-icon">&#8505;</span>
+      A 6-digit code has been sent to your email. Check your inbox.
+    </div>
+    {% endif %}
+
+    {% with messages = get_flashed_messages(with_categories=True) %}
+      {% if messages %}
+        <div class="alert-wrap">
+          {% for category, message in messages %}
+            {% if category == 'danger' %}
+              <div class="alert danger"><span class="alert-icon">&#9888;</span> {{ message }}</div>
+            {% else %}
+              <div class="alert warning"><span class="alert-icon">&#9888;</span> {{ message }}</div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+      <label class="label" for="otp">OTP Code</label>
+      <input id="otp" name="otp" class="otp-input"
+             inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
+             placeholder="&nbsp;&nbsp;&bull;&nbsp;&bull;&nbsp;&bull;&nbsp;&bull;&nbsp;&bull;&nbsp;&bull;"
+             autocomplete="one-time-code" autofocus required/>
+
+      <div class="row" style="margin-top:18px;">
+        <button type="submit" class="btn btn-brass" style="flex:1;padding:13px;">Verify</button>
+        <a href="{{ url_for('auth.logout') }}" class="btn btn-ghost" style="flex:1;text-align:center;padding:13px;">&larr; Back</a>
+      </div>
+    </form>
+
+    <p style="font-size:11px;color:var(--text-3);text-align:center;margin-top:14px;">
+      Code auto-submits when all 6 digits are entered. &nbsp;|&nbsp; Expires after 5 minutes.
+    </p>
+
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

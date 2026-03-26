@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Search Guest | Grand Prestige{% endblock %}
+
+{% macro status_chip(g) %}
+  {% if g['status'] == 'cancelled' %}<span class="chip chip-danger">Cancelled</span>
+  {% elif g['checkout_date'] < today %}<span class="chip chip-muted">Checked Out</span>
+  {% else %}<span class="chip chip-ok">Checked In</span>{% endif %}
+{% endmacro %}
+
+{% block content %}
+<div class="layout">
+  <aside class="card sidebar">
+    <div class="side-head">
+      <div class="brand-mark" style="width:32px;height:32px;font-size:14px;">G</div>
+      <div><div class="side-label">Menu</div><div class="side-sub">{{role}}</div></div>
+    </div>
+
+    <div class="nav-section-title">Navigation</div>
+    <nav class="nav-links">
+      <a href="{{ url_for('dashboard.home') }}" class="nav-link">
+        <span class="ni">&#9634;</span> Dashboard
+      </a>
+
+      {%- if role in ['Admin','Receptionist','Manager'] %}
+      <a href="{{ url_for('guests.register') }}" class="nav-link">
+        <span class="ni">&#43;</span> Register Guest
+      </a>
+      {%- endif %}
+
+      <a href="{{ url_for('guests.guest_list') }}" class="nav-link">
+        <span class="ni">&#9776;</span>
+        {%- if role == 'Receptionist' %} Room Status
+        {%- elif role == 'Manager' %} Guest Records
+        {%- else %} All Guests
+        {%- endif %}
+      </a>
+
+      <a href="{{ url_for('guests.search') }}" class="nav-link active">
+        <span class="ni">&#128269;</span> Search Guest
+      </a>
+    </nav>
+
+    {%- if role in ['Admin','Manager'] %}
+    <div class="nav-divider"></div>
+    <div class="nav-section-title">Management</div>
+    <nav class="nav-links">
+      {%- if role == 'Admin' %}
+      <a href="{{ url_for('admin.users') }}" class="nav-link">
+        <span class="ni">&#128100;</span> Staff Accounts
+        <span class="nb chip chip-danger">Admin</span>
+      </a>
+      <a href="{{ url_for('audit.audit_page') }}" class="nav-link">
+        <span class="ni">&#128270;</span> Audit Trail
+        <span class="nb chip chip-danger">Admin</span>
+      </a>
+      {%- endif %}
+    </nav>
+    {%- endif %}
+
+    <div class="nav-divider"></div>
+    <div class="role-badge-block">
+      {%- if role == 'Admin' %}
+        <span class="role-pill admin">&#9679; Administrator</span>
+        <p class="role-desc">Full system access including audit trail and staff management.</p>
+      {%- elif role == 'Manager' %}
+        <span class="role-pill manager">&#9679; Manager</span>
+        <p class="role-desc">View and register guest bookings. Cancel or reschedule bookings.</p>
+      {%- else %}
+        <span class="role-pill reception">&#9679; Receptionist</span>
+        <p class="role-desc">Register guests and view room availability.</p>
+      {%- endif %}
+    </div>
+  </aside>
+  <main>
+    <div class="section-head">
+      <div>
+        <h1>Search Guest</h1>
+        <p>Find guests by name, ID number, phone, or room. All searches are logged.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:18px;">
+      <form method="GET" action="{{ url_for('guests.search') }}" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;">
+          <label class="label">Search Term</label>
+          <input name="q" value="{{ q }}" placeholder="Name, ID, phone, or room number" autofocus/>
+        </div>
+        <button type="submit" class="btn btn-brass" style="padding:12px 22px;">&#128269; Search</button>
+        {% if q %}<a href="{{ url_for('guests.search') }}" class="btn btn-ghost" style="padding:12px;">Clear</a>{% endif %}
+      </form>
+    </div>
+
+    {% if q %}
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center;">
+        <h2 style="margin:0;">Results for &ldquo;{{ q }}&rdquo;</h2>
+        <span class="chip {% if results %}chip-ok{% else %}chip-danger{% endif %}">{{ results|length }} found</span>
+      </div>
+      {% if results %}
+      <div class="table-wrap" style="border:none;border-radius:0;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              {% if role != 'Receptionist' %}<th>National ID</th><th>Phone</th>{% else %}<th>ID (masked)</th><th>Phone (masked)</th>{% endif %}
+              <th>Room</th><th>Check-in</th><th>Check-out</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for g in results %}
+            <tr>
+              <td style="font-weight:500;">{{ g['full_name'] }}</td>
+              {% if role == 'Receptionist' %}
+                <td><span class="masked">{{ g['national_id'][:2] }}&#9679;&#9679;&#9679;&#9679;{{ g['national_id'][-2:] if g['national_id']|length > 2 else '' }}</span></td>
+                <td><span class="masked">{{ g['phone'][:3] }}&#9679;&#9679;&#9679;&#9679;{{ g['phone'][-2:] if g['phone']|length > 2 else '' }}</span></td>
+              {% else %}
+                <td class="mono">{{ g['national_id'] }}</td>
+                <td class="mono">{{ g['phone'] }}</td>
+              {% endif %}
+              <td><span class="chip chip-brass">{{ g['room'] }}</span></td>
+              <td class="mono small">{{ g['checkin_date'] }}</td>
+              <td class="mono small" style="color:var(--brass-lt);font-weight:600;">{{ g['checkout_date'] }}</td>
+              <td>{{ status_chip(g) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding:40px;">
+        <div class="empty-icon">&#128269;</div>
+        <p>No guests found matching &ldquo;{{ q }}&rdquo;.</p>
+      </div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="card" style="text-align:center;padding:48px;">
+      <div style="font-size:36px;margin-bottom:12px;opacity:.4;">&#128269;</div>
+      <p>Enter a name, ID number, phone number, or room to search.</p>
+      <p class="small" style="margin-top:8px;color:var(--text-3);">Every search is recorded in the audit trail.</p>
+    </div>
+    {% endif %}
+  </main>
+</div>
+{% endblock %}

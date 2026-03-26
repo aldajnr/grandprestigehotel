@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+{% block title %}{% if role=='Receptionist' %}Room Status{% else %}Guest Records{% endif %} | Grand Prestige{% endblock %}
+
+{% macro mask(v) %}{% if not v %}&#9679;&#9679;&#9679;&#9679;{% else %}{{ v[:2] }}&#9679;&#9679;&#9679;&#9679;{{ v[-2:] }}{% endif %}{% endmacro %}
+{% macro status_chip(g) %}
+  {% if g['status'] == 'cancelled' %}<span class="chip chip-danger">Cancelled</span>
+  {% elif g['checkout_date'] < today %}<span class="chip chip-muted">Checked Out</span>
+  {% else %}<span class="chip chip-ok">Checked In</span>{% endif %}
+{% endmacro %}
+
+{% block content %}
+<div class="layout">
+  <aside class="card sidebar">
+    <div class="side-head">
+      <div class="brand-mark" style="width:32px;height:32px;font-size:14px;">G</div>
+      <div><div class="side-label">Menu</div><div class="side-sub">{{role}}</div></div>
+    </div>
+
+    <div class="nav-section-title">Navigation</div>
+    <nav class="nav-links">
+      <a href="{{ url_for('dashboard.home') }}" class="nav-link">
+        <span class="ni">&#9634;</span> Dashboard
+      </a>
+
+      {%- if role in ['Admin','Receptionist','Manager'] %}
+      <a href="{{ url_for('guests.register') }}" class="nav-link">
+        <span class="ni">&#43;</span> Register Guest
+      </a>
+      {%- endif %}
+
+      <a href="{{ url_for('guests.guest_list') }}" class="nav-link active">
+        <span class="ni">&#9776;</span>
+        {%- if role == 'Receptionist' %} Room Status
+        {%- elif role == 'Manager' %} Guest Records
+        {%- else %} All Guests
+        {%- endif %}
+      </a>
+
+      <a href="{{ url_for('guests.search') }}" class="nav-link">
+        <span class="ni">&#128269;</span> Search Guest
+      </a>
+    </nav>
+
+    {%- if role in ['Admin','Manager'] %}
+    <div class="nav-divider"></div>
+    <div class="nav-section-title">Management</div>
+    <nav class="nav-links">
+      {%- if role == 'Admin' %}
+      <a href="{{ url_for('admin.users') }}" class="nav-link">
+        <span class="ni">&#128100;</span> Staff Accounts
+        <span class="nb chip chip-danger">Admin</span>
+      </a>
+      <a href="{{ url_for('audit.audit_page') }}" class="nav-link">
+        <span class="ni">&#128270;</span> Audit Trail
+        <span class="nb chip chip-danger">Admin</span>
+      </a>
+      {%- endif %}
+    </nav>
+    {%- endif %}
+
+    <div class="nav-divider"></div>
+    <div class="role-badge-block">
+      {%- if role == 'Admin' %}
+        <span class="role-pill admin">&#9679; Administrator</span>
+        <p class="role-desc">Full system access including audit trail and staff management.</p>
+      {%- elif role == 'Manager' %}
+        <span class="role-pill manager">&#9679; Manager</span>
+        <p class="role-desc">View and register guest bookings. Cancel or reschedule bookings.</p>
+      {%- else %}
+        <span class="role-pill reception">&#9679; Receptionist</span>
+        <p class="role-desc">Register guests and view room availability.</p>
+      {%- endif %}
+    </div>
+  </aside>
+  <main>
+
+    {# ── RECEPTIONIST VIEW: Room Status only ── #}
+    {% if role == 'Receptionist' %}
+    <div class="section-head">
+      <div>
+        <h1>Room Availability</h1>
+        <p>Today's occupancy at a glance. Manage new check-ins below.</p>
+      </div>
+      <div class="section-actions">
+        <a href="{{ url_for('guests.register') }}" class="btn btn-brass">&#43; Register Guest</a>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:18px;">
+      <h2 style="margin-bottom:14px;">Occupied Rooms Today</h2>
+      {% if rooms_occupied %}
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Room</th><th>Guest</th><th>Check-in</th><th>Check-out</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for r in rooms_occupied %}
+            <tr>
+              <td><span class="chip chip-brass">{{ r['room'] }}</span></td>
+              <td style="font-weight:500;">{{ r['full_name'] }}</td>
+              <td class="mono small">{{ r['checkin_date'] }}</td>
+              <td class="mono small" style="color:var(--brass-lt);font-weight:600;">{{ r['checkout_date'] }}</td>
+              <td>{{ status_chip(r) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding:32px;"><div class="empty-icon">&#127968;</div><p>No rooms occupied today.</p></div>
+      {% endif %}
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center;">
+        <h2 style="margin:0;">Current Bookings</h2>
+        <span class="chip chip-brass">{{ guests|length }} active</span>
+      </div>
+      {% if guests %}
+      <div class="table-wrap" style="border:none;border-radius:0;">
+        <table class="table">
+          <thead><tr><th>Name</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Nights</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for g in guests %}
+            <tr>
+              <td style="font-weight:500;">{{ g['full_name'] }}</td>
+              <td><span class="chip chip-brass">{{ g['room'] }}</span></td>
+              <td class="mono small">{{ g['checkin_date'] }}</td>
+              <td class="mono small" style="color:var(--brass-lt);font-weight:600;">{{ g['checkout_date'] }}</td>
+              <td class="mono small">{{ g['nights'] or '&mdash;' }}{% if g['nights'] %}n{% endif %}</td>
+              <td>{{ status_chip(g) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding:40px;"><div class="empty-icon">&#127968;</div><p>No active bookings.</p>
+        <a href="{{ url_for('guests.register') }}" class="btn btn-brass" style="margin-top:12px;">Register First Guest</a>
+      </div>
+      {% endif %}
+    </div>
+
+    {# ── MANAGER VIEW ── #}
+    {% elif role == 'Manager' %}
+    <div class="section-head">
+      <div><h1>Guest Records</h1><p>Full records with booking management. ID/phone always visible. Register new guests as needed.</p></div>
+      <div class="section-actions" style="display:flex;gap:8px;align-items:center;">
+        <input id="table-search" type="search" placeholder="Filter..." style="width:170px;padding:9px 13px;font-size:13px;"/>
+        <a href="{{ url_for('guests.register') }}" class="btn btn-brass">&#43; New Booking</a>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:18px;">
+      <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center;">
+        <h2 style="margin:0;">Current Guests</h2>
+        <span class="chip chip-ok">{{ guests|length }} active</span>
+      </div>
+      {% if guests %}
+      <div class="table-wrap" style="border:none;border-radius:0;">
+        <table class="table">
+          <thead><tr><th>Name</th><th>ID</th><th>Phone</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Nights</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for g in guests %}
+            <tr>
+              <td style="font-weight:500;">{{ g['full_name'] }}</td>
+              <td class="mono">{{ g['national_id'] }}</td>
+              <td class="mono">{{ g['phone'] }}</td>
+              <td><span class="chip chip-brass">{{ g['room'] }}</span></td>
+              <td class="mono small">{{ g['checkin_date'] }}</td>
+              <td class="mono small" style="color:var(--brass-lt);font-weight:600;">{{ g['checkout_date'] }}</td>
+              <td class="mono small">{{ g['nights'] or '&mdash;' }}{% if g['nights'] %}n{% endif %}</td>
+              <td>{{ status_chip(g) }}</td>
+              <td>
+                {% if g['status'] == 'active' %}
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <button onclick="openReschedule({{ g['id'] }},'{{ g['checkin_date'] }}','{{ g['checkout_date'] }}')" class="btn btn-ghost btn-sm">&#128337; Reschedule</button>
+                  <button onclick="openCancel({{ g['id'] }},'{{ g['full_name'] }}')" class="btn btn-danger-ghost btn-sm">&#10005; Cancel</button>
+                </div>
+                {% else %}&mdash;{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding:32px;"><div class="empty-icon">&#9776;</div><p>No active guests.</p></div>
+      {% endif %}
+    </div>
+
+    {% if past %}
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center;">
+        <h2 style="margin:0;">Past &amp; Cancelled Guests</h2>
+        <span class="chip chip-muted">{{ past|length }}</span>
+      </div>
+      <div class="table-wrap" style="border:none;border-radius:0;">
+        <table class="table">
+          <thead><tr><th>Name</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Status</th><th>Notes</th></tr></thead>
+          <tbody>
+            {% for g in past %}
+            <tr style="opacity:.7;">
+              <td style="font-weight:500;">{{ g['full_name'] }}</td>
+              <td><span class="chip chip-muted">{{ g['room'] }}</span></td>
+              <td class="mono small">{{ g['checkin_date'] }}</td>
+              <td class="mono small">{{ g['checkout_date'] }}</td>
+              <td>{{ status_chip(g) }}</td>
+              <td class="small" style="color:var(--text-2);">{{ g['cancel_reason'] or g['notes'] or '&mdash;' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── ADMIN VIEW ── #}
+    {% else %}
+    <div class="section-head">
+      <div><h1>All Guests</h1><p>Complete guest registry. Full access as Administrator.</p></div>
+      <div class="section-actions">
+        <input id="table-search" type="search" placeholder="Filter..." style="width:170px;padding:9px 13px;font-size:13px;"/>
+        <a href="{{ url_for('guests.register') }}" class="btn btn-brass">&#43; New Guest</a>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden;">
+      {% if guests %}
+      <div class="table-wrap" style="border:none;border-radius:0;">
+        <table class="table">
+          <thead><tr><th>#</th><th>Name</th><th>ID</th><th>Phone</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Nights</th><th>Payment</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for g in guests %}
+            <tr>
+              <td class="mono small">{{ g['id'] }}</td>
+              <td style="font-weight:500;">{{ g['full_name'] }}</td>
+              <td class="mono">{{ g['national_id'] }}</td>
+              <td class="mono">{{ g['phone'] }}</td>
+              <td><span class="chip chip-brass">{{ g['room'] }}</span></td>
+              <td class="mono small">{{ g['checkin_date'] }}</td>
+              <td class="mono small" style="color:var(--brass-lt);font-weight:600;">{{ g['checkout_date'] }}</td>
+              <td class="mono small">{{ g['nights'] or '&mdash;' }}{% if g['nights'] %}n{% endif %}</td>
+              <td class="small">{{ g['payment_method'] or '&mdash;' }}</td>
+              <td>{{ status_chip(g) }}</td>
+              <td>
+                {% if g['status'] == 'active' %}
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <button onclick="openReschedule({{ g['id'] }},'{{ g['checkin_date'] }}','{{ g['checkout_date'] }}')" class="btn btn-ghost btn-sm">&#128337;</button>
+                  <button onclick="openCancel({{ g['id'] }},'{{ g['full_name'] }}')" class="btn btn-danger-ghost btn-sm">&#10005;</button>
+                </div>
+                {% elif g['status'] == 'cancelled' %}
+                  <span class="small" style="color:var(--text-3);" title="{{ g['cancel_reason'] }}">Reason: {{ (g['cancel_reason'] or '')[:20] }}</span>
+                {% else %}&mdash;{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding:56px;"><div class="empty-icon">&#127968;</div><p>No guests yet.</p>
+        <a href="{{ url_for('guests.register') }}" class="btn btn-brass" style="margin-top:12px;">Register First Guest</a>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  </main>
+</div>
+
+{# ── Cancel modal ── #}
+<div id="cancel-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;place-items:center;display:none;">
+  <div class="card" style="width:100%;max-width:420px;margin:auto;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">
+    <h2 style="margin-bottom:14px;">Cancel Booking</h2>
+    <p id="cancel-name" style="margin-bottom:14px;"></p>
+    <form id="cancel-form" method="POST">
+      <label class="label">Reason for Cancellation</label>
+      <textarea name="reason" placeholder="e.g. Guest requested cancellation" style="min-height:80px;" required></textarea>
+      <div class="row" style="margin-top:14px;">
+        <button type="submit" class="btn btn-danger-ghost" style="flex:1;">Confirm Cancel</button>
+        <button type="button" onclick="closeModal('cancel-modal')" class="btn btn-ghost" style="flex:1;">Back</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Reschedule modal ── #}
+<div id="reschedule-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;">
+  <div class="card" style="width:100%;max-width:440px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">
+    <h2 style="margin-bottom:14px;">Reschedule Booking</h2>
+    <form id="reschedule-form" method="POST">
+      <div class="form-row">
+        <div class="form-col">
+          <label class="label">New Check-in *</label>
+          <input id="r-checkin" name="checkin_date" type="date" required/>
+        </div>
+        <div class="form-col">
+          <label class="label">New Check-out *</label>
+          <input id="r-checkout" name="checkout_date" type="date" required/>
+        </div>
+      </div>
+      <div class="row" style="margin-top:14px;">
+        <button type="submit" class="btn btn-brass" style="flex:1;">Save Changes</button>
+        <button type="button" onclick="closeModal('reschedule-modal')" class="btn btn-ghost" style="flex:1;">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openCancel(id, name) {
+  document.getElementById('cancel-form').action = '/guests/' + id + '/cancel';
+  document.getElementById('cancel-name').textContent = 'Guest: ' + name;
+  document.getElementById('cancel-modal').style.display = 'block';
+}
+function openReschedule(id, ci, co) {
+  document.getElementById('reschedule-form').action = '/guests/' + id + '/reschedule';
+  document.getElementById('r-checkin').value = ci;
+  document.getElementById('r-checkout').value = co;
+  document.getElementById('reschedule-modal').style.display = 'block';
+}
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+</script>
+{% endblock %}

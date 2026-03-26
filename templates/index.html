@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Login | Grand Prestige Hotel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}"/>
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card card">
+
+    <div style="text-align:center;margin-bottom:22px;">
+      <div class="auth-emblem">G</div>
+      <div class="auth-title">Grand Prestige Hotel</div>
+      <div class="auth-sub">Secure Staff Portal &mdash; Zetech University</div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=True) %}
+      {% if messages %}
+        <div class="alert-wrap">
+          {% for category, message in messages %}
+            {% if category == 'success' %}
+              <div class="alert success"><span class="alert-icon">&#10003;</span> {{ message }}</div>
+            {% elif category == 'danger' %}
+              <div class="alert danger"><span class="alert-icon">&#9888;</span> {{ message }}</div>
+            {% elif category == 'info' %}
+              <div class="alert info"><span class="alert-icon">&#8505;</span> {{ message }}</div>
+            {% else %}
+              <div class="alert warning"><span class="alert-icon">&#9888;</span> {{ message }}</div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" autocomplete="off">
+      <label class="label" for="username">Staff Email</label>
+      <input id="username" name="username" type="email"
+             placeholder="yourname@zetech.ac.ke" autocomplete="username" required/>
+
+      <label class="label" for="password" style="margin-top:14px;">Password</label>
+      <input id="password" name="password" type="password"
+             placeholder="Enter your password" autocomplete="current-password" required/>
+
+      <button type="submit" class="btn btn-brass" style="width:100%;margin-top:20px;padding:13px;">
+        Continue &rarr;
+      </button>
+    </form>
+
+    <div style="text-align:center;margin-top:14px;">
+      <a href="{{ url_for('auth.forgot_password') }}"
+         style="font-size:12px;color:var(--brass);text-decoration:underline;">
+        Forgot password?
+      </a>
+    </div>
+
+    <p style="font-size:11px;color:var(--text-3);text-align:center;margin-top:10px;">
+      Only <strong style="color:var(--brass);">@zetech.ac.ke</strong> accounts are permitted access.
+    </p>
+
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
