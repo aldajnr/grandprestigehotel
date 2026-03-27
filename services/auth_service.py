@@ -4,6 +4,9 @@ import random
 import time
 import smtplib
 import logging
+import json
+import urllib.request
+import urllib.error
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -22,12 +25,54 @@ def _send_email(app, recipient: str, subject: str, html_body: str, plain_body: s
     """Core email sender — returns True on success."""
     if not app.config.get("MAIL_ENABLED"):
         return False
+    brevo_api_key = app.config.get("BREVO_API_KEY", "").strip()
+    sender_email = app.config.get("MAIL_FROM") or app.config.get("MAIL_USERNAME", "")
+
+    # Prefer Brevo HTTP API in production to avoid SMTP connectivity issues.
+    if brevo_api_key:
+        payload = {
+            "sender": {"email": sender_email},
+            "to": [{"email": recipient}],
+            "subject": subject,
+            "htmlContent": html_body,
+            "textContent": plain_body,
+        }
+        req = urllib.request.Request(
+            "https://api.brevo.com/v3/smtp/email",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "accept": "application/json",
+                "content-type": "application/json",
+                "api-key": brevo_api_key,
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                status = getattr(resp, "status", 200)
+                if 200 <= status < 300:
+                    logger.info("Brevo email sent to %s | subject: %s", recipient, subject)
+                    return True
+                logger.error("Brevo email failed with status %s", status)
+                return False
+        except urllib.error.HTTPError as exc:
+            body = ""
+            try:
+                body = exc.read().decode("utf-8", errors="ignore")
+            except Exception:
+                body = ""
+            logger.error("Brevo API HTTP error %s: %s", exc.code, body)
+            return False
+        except Exception as exc:
+            logger.error("Brevo API request failed: %s", exc)
+            return False
+
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"]    = app.config.get("MAIL_FROM") or app.config["MAIL_USERNAME"]
-    msg["To"]      = recipient
+    msg["From"] = sender_email
+    msg["To"] = recipient
     msg.attach(MIMEText(plain_body, "plain"))
-    msg.attach(MIMEText(html_body,  "html"))
+    msg.attach(MIMEText(html_body, "html"))
     try:
         with smtplib.SMTP(app.config["MAIL_SERVER"], app.config["MAIL_PORT"], timeout=12) as smtp:
             smtp.ehlo()

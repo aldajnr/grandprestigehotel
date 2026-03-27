@@ -38,7 +38,8 @@ class Config:
     MAIL_USE_TLS  = True
     MAIL_USERNAME = os.environ.get("MAIL_USERNAME", "")
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD", "")
+    BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
     # Default MAIL_FROM to MAIL_USERNAME — Gmail rejects mismatched From headers
     MAIL_FROM     = os.environ.get("MAIL_FROM") or os.environ.get("MAIL_USERNAME", "noreply@grandhotel.com")
-    MAIL_ENABLED  = bool(os.environ.get("MAIL_USERNAME", ""))
+    MAIL_ENABLED  = bool(BREVO_API_KEY or MAIL_USERNAME)
     OTP_EXPIRY_SEC = 300
